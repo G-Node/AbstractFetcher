@@ -1,0 +1,7 @@
+//
+// Prefix header for all source files of the 'AbstractFetcher' target in the 'AbstractFetcher' project
+//
+
+#ifdef __OBJC__
+    #import <Cocoa/Cocoa.h>
+#endif
