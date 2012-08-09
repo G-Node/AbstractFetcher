@@ -24,6 +24,7 @@
 //
 
 #import "AFAppDelegate.h"
+#import "AFArticleRef.h"
 #import <WebKit/WebFrameLoadDelegate.h>
 
 typedef enum {
@@ -59,7 +60,8 @@ typedef enum {
 @property (weak) IBOutlet NSProgressIndicator *loadIndicator;
 
 @property (nonatomic, strong) NSString *saveLocation;
-@property (nonatomic, strong) NSMutableArray *urls;
+//@property (nonatomic, strong) NSMutableArray *urls;
+@property (nonatomic, strong) NSMutableArray *articleRefs;
 @property (nonatomic, strong) NSFileHandle *fdOutput;
 @property (nonatomic, readonly) NSURL *currentURL;
 @property (nonatomic) NSUInteger idx;
@@ -77,7 +79,8 @@ typedef enum {
 @synthesize status = _status;
 @synthesize statusIndex = _statusIndex;
 
-@synthesize urls = _urls;
+//@synthesize urls = _urls;
+@synthesize articleRefs = _articleRefs;
 @synthesize idx = _idx;
 @synthesize fdOutput = _fdOutput;
 @synthesize progress = _progress;
@@ -107,7 +110,7 @@ typedef enum {
     [self.webview setResourceLoadDelegate:self];
 }
 
-- (NSArray *)gatherURLs
+- (NSArray *)gatherRefs
 {
     DOMNodeList *list = [[self.webview.mainFrame DOMDocument] getElementsByName:@"chkArticleListing"];
     NSMutableArray *newURLs = [NSMutableArray arrayWithCapacity:list.length];
@@ -116,15 +119,22 @@ typedef enum {
         DOMNode *node = [list item:i];
         DOMNode *attr = [[node attributes] getNamedItem:@"value"];
         NSString *val = [attr nodeValue];
-        NSRange range = [val rangeOfString:@"|"];
-        NSString *abstractID = [val substringToIndex:range.location];
-        [newURLs addObject:abstractID];
+        NSArray *components = [val componentsSeparatedByString:@"|"];
+        
+        if (components == nil || components.count < 2) {
+            NSLog(@"Skipping %@\n", val);
+            continue;
+        }
+
+        AFArticleRef *ref = [AFArticleRef refFromCompounedString:val];
+        [newURLs addObject:ref];
     }
     return newURLs;
 }
 
 - (void) startOperation
 {
+    [self.location setEnabled:NO];
     [self.goButton setEnabled:NO];
     [self.loadIndicator startAnimation:self];
     [self.loadIndicator setHidden:NO];
@@ -132,6 +142,7 @@ typedef enum {
 
 - (void) finishOperation
 {
+    [self.location setEnabled:YES];
     [self.goButton setEnabled:YES];
     [self.loadIndicator stopAnimation:self];
     [self.loadIndicator setHidden:YES];
@@ -144,8 +155,8 @@ typedef enum {
     state = STATE_GET_URLS;
     
     self.idx = 0;
-    NSArray *newURLs = [self gatherURLs];
-    self.urls = [NSMutableArray arrayWithArray:newURLs];
+    NSArray *refs = [self gatherRefs];
+    self.articleRefs = [NSMutableArray arrayWithArray:refs];
     
     [self gotoNextPage];
 }
@@ -153,9 +164,9 @@ typedef enum {
 - (void) finishGetURLs
 {
     NSMutableString *str = [[NSMutableString alloc] initWithString:@"<html><body><p>"];
-    for (NSString *cid in self.urls) {
-        NSLog(@"%@\n", cid);
-        [str appendFormat:@"%@<br/>", cid];
+    for (AFArticleRef *ref in self.articleRefs) {
+        NSLog(@"%@\n", ref);
+        [str appendFormat:@"%@ : %@<br/>", ref.identifier, ref.submissionId];
     }
     [str appendString:@"</p></body></html>"];
     [[self.webview mainFrame] loadHTMLString:str baseURL:[NSURL URLWithString:@"file:///"]];
@@ -178,7 +189,7 @@ typedef enum {
        [self startGetURLs];
    } else if (state == STATE_HAVE_URLS) {
        
-        if (self.urls == nil || self.urls.count == 0) {
+        if (self.articleRefs == nil || self.articleRefs.count == 0) {
             return;
         }
         
@@ -215,7 +226,7 @@ typedef enum {
     self.fdOutput = fh;
 
     [self.progress setMinValue:0.0];
-    [self.progress setMaxValue:[self.urls count]];
+    [self.progress setMaxValue:[self.articleRefs count]];
     
     self.idx = 0;
     state = STATE_GET_ABS;
@@ -224,9 +235,10 @@ typedef enum {
 
 - (void)processNextUrl
 {
-    NSString *targetID = [self.urls objectAtIndex:self.idx];
-    NSString *targetURL = [NSString stringWithFormat:@"%@&articleid=%@", ABSTRACT_DETAIL_URL, targetID];
-    NSUInteger nurls = [self.urls count];
+    AFArticleRef *ref = [self.articleRefs objectAtIndex:self.idx];
+    NSString *targetURL = [NSString stringWithFormat:@"%@&articleid=%@&submissionid=%@",
+                           ABSTRACT_DETAIL_URL, ref.identifier, ref.submissionId];
+    NSUInteger nurls = [self.articleRefs count];
     [self.statusIndex setStringValue:[NSString stringWithFormat:@"%3lu / %3lu", self.idx, nurls]];
     [self.status setStringValue:targetURL];
     [self.progress setDoubleValue:self.idx];
@@ -241,8 +253,8 @@ typedef enum {
     [self.status setStringValue:@"All done!"];
     state = STATE_DONE;
     
-    NSUInteger nurls = [self.urls count];
-    [self.statusIndex setStringValue:[NSString stringWithFormat:@"%3lu / %3lu", self.idx, nurls]];
+    NSUInteger nrefs = [self.articleRefs count];
+    [self.statusIndex setStringValue:[NSString stringWithFormat:@"%3lu / %3lu", self.idx, nrefs]];
     
     //Display the result file in the main window
     [[self.webview mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL fileURLWithPath:self.saveLocation]]];
@@ -278,7 +290,7 @@ typedef enum {
     
     self.idx += 1;
     
-    if (self.idx < [self.urls count])
+    if (self.idx < [self.articleRefs count])
         [self processNextUrl];
     else
         [self finishProcessing];
@@ -288,10 +300,10 @@ typedef enum {
 {
     ReqID *rid = [[ReqID alloc] init];
     [self.statusIndex setStringValue:[NSString stringWithFormat:@"%ld", self.idx]];
-    if ([request.URL isEqual:self.currentURL]) {
+    if ([request.URL.absoluteString hasPrefix:self.currentURL.absoluteString]) {
         rid.isTarget = YES;
     }
-    
+    //NSLog(@"%@ -> %d", request.URL.absoluteString, rid.isTarget);
     return rid;
 }
 
@@ -303,8 +315,8 @@ typedef enum {
         return;
 
     //parse and add the new urls
-    NSArray *newURLs = [self gatherURLs];
-    [self.urls addObjectsFromArray:newURLs];
+    NSArray *newURLs = [self gatherRefs];
+    [self.articleRefs addObjectsFromArray:newURLs];
     
     //find out at which index we currently are
     NSString *cURL = self.webview.mainFrameURL;

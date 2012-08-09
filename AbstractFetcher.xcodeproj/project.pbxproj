@@ -15,6 +15,7 @@
 		E99EE59415B581B70007DC94 /* MainMenu.xib in Resources */ = {isa = PBXBuildFile; fileRef = E99EE59215B581B70007DC94 /* MainMenu.xib */; };
 		E99EE5B915B5821D0007DC94 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E99EE5B815B5821D0007DC94 /* WebKit.framework */; };
 		E9A993C615D127E100F58684 /* BCCN_Logo.icns in Resources */ = {isa = PBXBuildFile; fileRef = E9A993C515D127E100F58684 /* BCCN_Logo.icns */; };
+		E9DD692415D3AD0100063DBF /* AFArticleRef.m in Sources */ = {isa = PBXBuildFile; fileRef = E9DD692315D3AD0100063DBF /* AFArticleRef.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +36,8 @@
 		E99EE5B815B5821D0007DC94 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		E9A993C515D127E100F58684 /* BCCN_Logo.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = BCCN_Logo.icns; path = ../BCCN_Logo.icns; sourceTree = "<group>"; };
 		E9A993C715D18C2900F58684 /* convert.py */ = {isa = PBXFileReference; lastKnownFileType = text.script.python; path = convert.py; sourceTree = SOURCE_ROOT; };
+		E9DD692215D3AD0100063DBF /* AFArticleRef.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AFArticleRef.h; sourceTree = "<group>"; };
+		E9DD692315D3AD0100063DBF /* AFArticleRef.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = AFArticleRef.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +94,8 @@
 		E99EE58315B581B70007DC94 /* AbstractFetcher */ = {
 			isa = PBXGroup;
 			children = (
+				E9DD692215D3AD0100063DBF /* AFArticleRef.h */,
+				E9DD692315D3AD0100063DBF /* AFArticleRef.m */,
 				E99EE58F15B581B70007DC94 /* AFAppDelegate.h */,
 				E99EE59015B581B70007DC94 /* AFAppDelegate.m */,
 				E99EE59215B581B70007DC94 /* MainMenu.xib */,
@@ -180,6 +185,7 @@
 			files = (
 				E99EE58A15B581B70007DC94 /* main.m in Sources */,
 				E99EE59115B581B70007DC94 /* AFAppDelegate.m in Sources */,
+				E9DD692415D3AD0100063DBF /* AFArticleRef.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
