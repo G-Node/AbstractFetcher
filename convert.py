@@ -22,6 +22,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 # -*- coding: utf8 -*-
+import urlparse
+
 __author__ = 'Christian Kellner'
 
 import codecs
@@ -79,6 +81,7 @@ class Converter(object):
 
     def find_handler(self, line):
         token = line.rstrip().lower()
+        token = token.rstrip('123456789') #hack for figure numbers
         if ':' in token:
             words = token.split(':')
             token = words[0]
@@ -103,12 +106,17 @@ class Converter(object):
 
         return handler
 
+    def preprocess(self, line):
+        new_line = line.replace('EVENT ABSTRACT Back to Event', 'EVENT ABSTRACT')
+        return new_line
+
     def convert(self, input):
         event = None
         for line in input:
             self._linenum += 1
 
             try:
+                line = self.preprocess(line)
                 handler = self.find_handler(line)
                 event = handler(event, line.rstrip())
             except :
@@ -126,9 +134,18 @@ class Converter(object):
 
     @Handler('Event Abstract')
     def handle_event(self, event, line):
+
+        if event and len(event):
+            self._events.append(event)
+
         event = {}
         if self._http:
             event['url'] = self._http
+            url = urlparse.urlparse (self._http)
+            ids = urlparse.parse_qs(url[4])
+            #event['frontid'] = ids['articleid'][0]
+            #event['frontsubid'] = ids['submissionid'][0]
+            #FIXME remeber doi!
             self._http = None
         self.state = 'Title'
         return event
@@ -199,6 +216,20 @@ class Converter(object):
         event = self.event_add_text(event, 'abstract', line)
         return event
 
+    @Handler('Abstract::Figure ')
+    def handle_figure(self, event, line):
+        if len(line) > len('Figure X'):
+            sys.stderr.write("F: %s\n" % line)
+            event = self.event_add_text(event, 'abstract', line)
+            return event
+
+        if not event.has_key('nfigures'):
+            event['nfigures'] = 0
+
+        curFig = int (line[7:])
+        event['nfigures'] = max(event['nfigures'], curFig)
+        return event
+
     @Handler('*::Acknowledgements')
     def begin_acknowledgements(self, event, line):
         self.state = 'Acknowledgements'
@@ -265,7 +296,7 @@ class Converter(object):
 
     @Handler('Cor::@Text')
     def handle_corr_more(self, event, line):
-        event['correspondence'] = '\n' + line
+        event['correspondence'] += '\n' + line
         return event
 
     @Handler('*::Conference')
@@ -368,7 +399,7 @@ class XmlWriter(object):
         return str
 
 def main():
-    parser = argparse.ArgumentParser(description='Convert BC12 abstracts files')
+    parser = argparse.ArgumentParser(description='Convert frontiers abstracts files')
     parser.add_argument('input', type=str, default=sys.stdin)
 
     args = parser.parse_args()
@@ -378,7 +409,8 @@ def main():
     events = C.events
 
     writer = JSONWriter(events)
-    print writer.write()
+    print(writer.write())
+    sys.stderr.write("# of abstracts: %d\n" % len(events))
 
     #for e in events:
     #    print e

@@ -35,9 +35,12 @@ typedef enum {
     STATE_DONE = 4
 } AppState;
 
-#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/journal/AbstractMyEditingAssignment.aspx?stage=8"
+//#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/journal/AbstractMyEditingAssignment.aspx?stage=8"
+#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/MyFrontiers/Events/ViewEventAbstractDetail.aspx?va=1&eid=1904&sname=Neuroinformatics_2013"
 #define ABSTRACT_DETAIL_URL @"http://www.frontiersin.org/Journal/MyEditingViewDetails.aspx?stage=8"
-#define JS_NEXT_PAGE @"__doPostBack('ctl00$ctl00$MainContentPlaceHolder$ContentAreaMainContent$PagerTop$lnkNextPage','')"
+//#define JS_NEXT_PAGE @"__doPostBack('ctl00$ctl00$MainContentPlaceHolder$ContentAreaMainContent$UcEventsAbstractListing$ucCommunityPagerTop$lnkNextPage','')"
+
+#define JS_NEXT_PAGE @"__doPostBack('ctl00$ctl00$MainContentPlaceHolder$ContentAreaMainContent$UcEventAbstractsListing$ucCommunityPagerTop$lnkNextPage','')"
 
 @interface ReqID : NSObject
 @property BOOL isTarget;
@@ -58,6 +61,7 @@ typedef enum {
 @property (weak) IBOutlet NSProgressIndicator *progress;
 @property (weak) IBOutlet NSTextField *location;
 @property (weak) IBOutlet NSProgressIndicator *loadIndicator;
+@property (weak) IBOutlet NSButton *gatherURLsButton;
 
 @property (nonatomic, strong) NSString *saveLocation;
 //@property (nonatomic, strong) NSMutableArray *urls;
@@ -97,6 +101,7 @@ typedef enum {
     [self.statusIndex setStringValue:@""];
     [self.location setStringValue:ABSTRACT_ACCEPTED_URL];
     [[self.webview mainFrame] loadRequest:[NSURLRequest requestWithURL:self.currentURL]];
+    self.articleRefs = [[NSMutableArray alloc] init];
 }
 
 - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication
@@ -112,22 +117,36 @@ typedef enum {
 
 - (NSArray *)gatherRefs
 {
-    DOMNodeList *list = [[self.webview.mainFrame DOMDocument] getElementsByName:@"chkArticleListing"];
+    DOMNodeList *list = [[self.webview.mainFrame DOMDocument] getElementsByClassName:@"AS55"];
+    //DOMNodeList *list = [[self.webview.mainFrame DOMDocument] getElementsByName:@"chkArticleListing"];
     NSMutableArray *newURLs = [NSMutableArray arrayWithCapacity:list.length];
-    
+    NSURL *base = [NSURL URLWithString:@"http://www.frontiersin.org/"];
     for (int i = 0; i < list.length; i++) {
-        DOMNode *node = [list item:i];
-        DOMNode *attr = [[node attributes] getNamedItem:@"value"];
-        NSString *val = [attr nodeValue];
-        NSArray *components = [val componentsSeparatedByString:@"|"];
         
-        if (components == nil || components.count < 2) {
-            NSLog(@"Skipping %@\n", val);
-            continue;
+        DOMNode *node = [list item:i];
+        DOMNodeList *children = [node childNodes];
+        DOMNode *link = nil;
+        for (int k = 0; k < children.length; k++) {
+            DOMNode *cur = [children item:k];
+            NSLog(@"checking %@ ", cur.nodeName);
+            if (cur.nodeType == DOM_ELEMENT_NODE &&
+                [cur.nodeName compare:@"A"] == NSOrderedSame) {
+                link = cur;
+                break;
+            }
         }
 
-        AFArticleRef *ref = [AFArticleRef refFromCompounedString:val];
-        [newURLs addObject:ref];
+        if (link == nil) {
+            NSLog(@"skipping.. ");
+            continue;
+        }
+        DOMNode *attr = [[link attributes] getNamedItem:@"href"];
+        NSString *href = [attr nodeValue];
+        
+        NSURL *url = [NSURL URLWithString:href relativeToURL:base];
+       // AFArticleRef *ref = [AFArticleRef refFromCompounedString:val];
+        NSLog(@"new URL: %@", url);
+        [newURLs addObject:url];
     }
     return newURLs;
 }
@@ -148,25 +167,12 @@ typedef enum {
     [self.loadIndicator setHidden:YES];
 }
 
-
-- (void) startGetURLs
-{
-    [self startOperation];
-    state = STATE_GET_URLS;
-    
-    self.idx = 0;
-    NSArray *refs = [self gatherRefs];
-    self.articleRefs = [NSMutableArray arrayWithArray:refs];
-    
-    [self gotoNextPage];
-}
-
-- (void) finishGetURLs
+- (void) showURLs
 {
     NSMutableString *str = [[NSMutableString alloc] initWithString:@"<html><body><p>"];
-    for (AFArticleRef *ref in self.articleRefs) {
-        NSLog(@"%@\n", ref);
-        [str appendFormat:@"%@ : %@<br/>", ref.identifier, ref.submissionId];
+    for (NSURL *ref in self.articleRefs) {
+        NSLog(@"%@\n", ref );
+        [str appendFormat:@"%@ <br/>", ref];
     }
     [str appendString:@"</p></body></html>"];
     [[self.webview mainFrame] loadHTMLString:str baseURL:[NSURL URLWithString:@"file:///"]];
@@ -186,7 +192,7 @@ typedef enum {
 - (IBAction)startStop:(NSButton *)sender
 {
     if (state == STATE_IDLE) {
-       [self startGetURLs];
+       //FIXME changed
    } else if (state == STATE_HAVE_URLS) {
        
         if (self.articleRefs == nil || self.articleRefs.count == 0) {
@@ -203,6 +209,25 @@ typedef enum {
         }];
    }
 }
+
+- (IBAction)gatherURLsNow:(id)sender
+{
+    if (state == STATE_IDLE) {
+        state = STATE_GET_URLS;
+    }
+    
+    //parse and add the new urls
+    NSArray *newURLs = [self gatherRefs];
+    [self.articleRefs addObjectsFromArray:newURLs];
+    [self.status setStringValue:[NSString stringWithFormat:@"Add %lu new URLs [%lu total]",
+                                 (unsigned long)newURLs.count,
+                                 (unsigned long)self.articleRefs.count]];
+    
+    if (self.articleRefs.count > 0) {
+        state = STATE_HAVE_URLS;
+    }
+}
+
 
 - (void)startGetAbstracts:(NSString *)saveLocation
 {
@@ -235,14 +260,12 @@ typedef enum {
 
 - (void)processNextUrl
 {
-    AFArticleRef *ref = [self.articleRefs objectAtIndex:self.idx];
-    NSString *targetURL = [NSString stringWithFormat:@"%@&articleid=%@&submissionid=%@",
-                           ABSTRACT_DETAIL_URL, ref.identifier, ref.submissionId];
+    NSURL *ref = [self.articleRefs objectAtIndex:self.idx];
     NSUInteger nurls = [self.articleRefs count];
     [self.statusIndex setStringValue:[NSString stringWithFormat:@"%3lu / %3lu", self.idx, nurls]];
-    [self.status setStringValue:targetURL];
+    [self.status setStringValue:[ref path]];
     [self.progress setDoubleValue:self.idx];
-    [[self.webview mainFrame] loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:targetURL]]];
+    [[self.webview mainFrame] loadRequest:[NSURLRequest requestWithURL:ref]];
 }
 
 -(void)finishProcessing
@@ -270,14 +293,14 @@ typedef enum {
     if (![frame.name isEqualToString:@""]) {
         return;
     }
-    
+ 
+    NSLog(@"did finsih load for frame!");
     NSString *url = [NSString stringWithFormat:@"%@\n", self.webview.mainFrameURL];
     [self.status setStringValue:url];
     
     [self finishOperation];
     if (state == STATE_GET_URLS) {
-        [self finishGetURLs];
-        return;
+        NSLog(@"XXX");
     } else if (state != STATE_GET_ABS)
         return;
     
@@ -309,28 +332,28 @@ typedef enum {
 
 - (void)webView:(WebView *)sender resource:(id)identifier didFinishLoadingFromDataSource:(WebDataSource *)dataSource
 {
-    ReqID *rid = identifier;
-   
-    if (!rid.isTarget)
-        return;
+//    ReqID *rid = identifier;
+//   
+//    if (!rid.isTarget)
+//        return;
 
-    //parse and add the new urls
-    NSArray *newURLs = [self gatherRefs];
-    [self.articleRefs addObjectsFromArray:newURLs];
-    
-    //find out at which index we currently are
-    NSString *cURL = self.webview.mainFrameURL;
-    NSRange idx = [cURL rangeOfString:@"Index="];
-    if (idx.location == NSNotFound) {
-        //[self.status setStringValue:@"ERROR: Could not Find Index="];
-        return;
-    }
-    
-    NSInteger nidx = [[cURL substringFromIndex:(idx.location+6)] integerValue];
-    if (self.idx < nidx) {
-        self.idx = nidx;
-        [self gotoNextPage];
-    }
+//    //parse and add the new urls
+//    NSArray *newURLs = [self gatherRefs];
+//    [self.articleRefs addObjectsFromArray:newURLs];
+//    
+//    //find out at which index we currently are
+//    NSString *cURL = self.webview.mainFrameURL;
+//    NSRange idx = [cURL rangeOfString:@"Index="];
+//    if (idx.location == NSNotFound) {
+//        [self.status setStringValue:@"ERROR: Could not Find Index="];
+//        return;
+//    }
+//    
+//    NSInteger nidx = [[cURL substringFromIndex:(idx.location+6)] integerValue];
+//    if (self.idx < nidx) {
+//        self.idx = nidx;
+//        [self gotoNextPage];
+//    }
 }
 
 @end
