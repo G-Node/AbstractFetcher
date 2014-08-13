@@ -36,7 +36,7 @@ typedef enum {
 } AppState;
 
 //#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/journal/AbstractMyEditingAssignment.aspx?stage=8"
-#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/MyFrontiers/Events/ViewEventAbstractDetail.aspx?va=1&eid=1904&sname=Neuroinformatics_2013"
+#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/MyFrontiers/Events/ViewEventAbstractDetail.aspx?va=1&eid=2231&sname=Neuroinformatics_2014"
 #define ABSTRACT_DETAIL_URL @"http://www.frontiersin.org/Journal/MyEditingViewDetails.aspx?stage=8"
 //#define JS_NEXT_PAGE @"__doPostBack('ctl00$ctl00$MainContentPlaceHolder$ContentAreaMainContent$UcEventsAbstractListing$ucCommunityPagerTop$lnkNextPage','')"
 
@@ -285,6 +285,11 @@ typedef enum {
 
 - (void)webView:(WebView *)sender didStartProvisionalLoadForFrame:(WebFrame *)frame
 {
+    NSLog(@"start Operation: %@", frame.name);
+    if (![frame.name isEqualToString:@""]) {
+        return;
+    }
+
     [self startOperation];
 }
 

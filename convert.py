@@ -103,12 +103,36 @@ class Converter(object):
             handler = handler[state]
         except KeyError:
             raise Exception('%s::%s not handled' % (token, state))
-
+        #sys.stderr.write('%s -> %s\n' % (token, handler))
         return handler
 
+    def split_keywords(self, line):
+        split_points = ['Conference:',
+                        'Presentation Type:',
+                        'Topic:',
+                        'Citation:',
+                        'Conference Abstract:',
+                        'doi:',
+                        'Received:',
+                        'Published Online:',
+                        '* Correspondence:']
+
+        lines = []
+        for sp in reversed(split_points):
+            idx = line.rindex(sp)
+            if idx == -1:
+                continue
+            lines.append(line[idx:].strip())
+            line = line[:idx]
+        lines.append(line.strip())
+        #sys.stderr.write(str(lines))
+        return reversed(lines)
+
     def preprocess(self, line):
+        if line.startswith('Keywords'):
+            return self.split_keywords(line)
         new_line = line.replace('EVENT ABSTRACT Back to Event', 'EVENT ABSTRACT')
-        return new_line
+        return [ new_line ]
 
     def convert(self, input):
         event = None
@@ -116,9 +140,10 @@ class Converter(object):
             self._linenum += 1
 
             try:
-                line = self.preprocess(line)
-                handler = self.find_handler(line)
-                event = handler(event, line.rstrip())
+                lines = self.preprocess(line)
+                for l in lines:
+                    handler = self.find_handler(l)
+                    event = handler(event, l.rstrip())
             except :
                 sys.stderr.write('LINE: %d\n' % self._linenum)
                 raise
@@ -301,6 +326,19 @@ class Converter(object):
 
     @Handler('*::Conference')
     def handle_conference(self, event, line):
+        return event
+
+    @Handler('*::Published Online')
+    def handle_published(self, event, line):
+        return event
+
+    @Handler('*::Received')
+    def handle_received(self, event, line):
+        return event
+    
+    @Handler('*::doi')
+    def handle_doi(self, event, line):
+        event['doi'] = line
         return event
 
     @Handler('< Back')
