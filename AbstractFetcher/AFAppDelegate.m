@@ -35,8 +35,7 @@ typedef enum {
     STATE_DONE = 4
 } AppState;
 
-//#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/journal/AbstractMyEditingAssignment.aspx?stage=8"
-#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/MyFrontiers/Events/ViewEventAbstractDetail.aspx?va=1&eid=2231&sname=Neuroinformatics_2014"
+#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/events/Neuroinformatics_2015/2602/abstracts"
 #define ABSTRACT_DETAIL_URL @"http://www.frontiersin.org/Journal/MyEditingViewDetails.aspx?stage=8"
 //#define JS_NEXT_PAGE @"__doPostBack('ctl00$ctl00$MainContentPlaceHolder$ContentAreaMainContent$UcEventsAbstractListing$ucCommunityPagerTop$lnkNextPage','')"
 
