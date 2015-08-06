@@ -119,7 +119,7 @@ class Converter(object):
 
         lines = []
         for sp in reversed(split_points):
-            idx = line.rindex(sp)
+            idx = line.rfind(sp)
             if idx == -1:
                 continue
             lines.append(line[idx:].strip())
