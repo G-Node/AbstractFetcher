@@ -48,7 +48,7 @@ def convert_author(old):
     author.first_name = h_name.first
     author.middle_name = h_name.middle
     author.last_name = h_name.last
-    author.affiliations = [int(x) for x in old['affiliations'] if x != '*']
+    author.affiliations = [int(x)-1 for x in old['affiliations'] if x != '*']
     # todo: corr?
     return author
 
