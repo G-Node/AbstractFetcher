@@ -63,14 +63,17 @@ def convert_author(old):
 
 def convert_references(old):
     refs = []
-    for r in old.split('\n'):
-        if not r:
-            continue
+    lines = old.split('\n')
+    lines = filter(lambda x: len(x) > 0, lines)
+
+    def mk_ref(text):
         ref = gca.Reference()
-        ref.text = r
+        ref.text = text
         refs.append(ref)
         fill_uuid(ref, {})
-    return refs
+        return ref
+
+    return [mk_ref(l) for l in lines]
 
 def convert_abstract(old, conference):
     abstract = gca.Abstract(conference=conference)
