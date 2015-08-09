@@ -9,9 +9,6 @@ from nameparser import HumanName
 import gca.core as gca
 from urlparse import urlparse
 
-def url_to_altId(u):
-    o = urlparse(u)
-    print(o.query)
 
 def convert_field(obj, old_name, abstract, new_name=None, def_value=None):
     if new_name is None:
