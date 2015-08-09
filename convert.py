@@ -203,7 +203,7 @@ class Converter(object):
         n_affiliations = 0
         for match in l:
             author = {'name' : match[0]}
-            af = re.findall('(?:([0-9])(\*?),?)', match[1])
+            af = re.findall('(?:([0-9]+)(\*?),?)', match[1])
             author['affiliations'] = [int(x[0]) for x in af]
 
             if '*' in match[1]:
