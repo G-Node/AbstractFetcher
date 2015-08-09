@@ -8,6 +8,16 @@ import json
 from nameparser import HumanName
 import gca.core as gca
 from urlparse import urlparse
+import uuid
+
+
+def fill_uuid(entity, old):
+    if 'uuid' in old:
+        id = old['uuid']
+    else:
+        id = uuid.uuid4()
+    entity.uuid = id
+    return entity
 
 
 def convert_field(obj, old_name, abstract, new_name=None, def_value=None):
@@ -36,6 +46,7 @@ def convert_affiliation(idx, old):
         af.address = c[1].strip()
 
     af.country = c[0].strip()
+    fill_uuid(af, old)
     return af
 
 def convert_author(old):
@@ -47,6 +58,7 @@ def convert_author(old):
     author.last_name = h_name.last
     author.affiliations = [int(x)-1 for x in old['affiliations'] if x != '*']
     # todo: corr?
+    fill_uuid(author, old)
     return author
 
 def convert_references(old):
@@ -57,6 +69,7 @@ def convert_references(old):
         ref = gca.Reference()
         ref.text = r
         refs.append(ref)
+        fill_uuid(ref, {})
     return refs
 
 def convert_abstract(old, conference):
@@ -72,6 +85,7 @@ def convert_abstract(old, conference):
     if 'refs' in old:
         abstract.references = convert_references(old['refs'])
 
+    fill_uuid(abstract, old)
     return abstract
 
 
@@ -117,7 +131,6 @@ if __name__ == '__main__':
                 continue
             sid = k[0]
             a.poster_id = sid
-
 
     js = gca.Abstract.to_json(new_objs)
     sys.stdout.write(js.encode('utf-8'))
