@@ -98,6 +98,8 @@ if __name__ == '__main__':
     new_objs = [convert_abstract(abs_dict, conference) for abs_dict in old_js]
 
     if args.sort is not None:
+        if conference is None:
+            raise ValueError('Need conference for prefixes')
         import pandas as pd
         df = pd.read_excel(args.sort)
         gp = df.groupby(['Abstract number', 'Article_Title'])
@@ -114,8 +116,11 @@ if __name__ == '__main__':
                     found = a
                     break
             if a is None:
-                print('Could not find' + t)
-        #sys.exit(0)
+                print('Could not find' + t, file=sys.stderr)
+                continue
+            sid = k[0]
+            a.poster_id = sid
+
 
     js = gca.Abstract.to_json(new_objs)
     sys.stdout.write(js.encode('utf-8'))
