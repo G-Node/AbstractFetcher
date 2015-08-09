@@ -62,9 +62,8 @@ def convert_references(old):
         refs.append(ref)
     return refs
 
-def convert_abstract(old):
-    print(old, file=sys.stderr)
-    abstract = gca.Abstract()
+def convert_abstract(old, conference):
+    abstract = gca.Abstract(conference=conference)
     convert_field(old, 'title', abstract)
     convert_field(old, 'abstract', abstract, 'text')
     convert_field(old, 'acknowledgements', abstract, 'acknowledgements')
@@ -82,15 +81,21 @@ def convert_abstract(old):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='old js to GCA schema js converter')
     parser.add_argument('--sort', type=str, default=None)
+    parser.add_argument('--conference', type=str, default=None)
     parser.add_argument('file', type=str, default='-')
     args = parser.parse_args()
+
+    conference = None
+    if args.conference is not None:
+        with open(args.conference) as fd:
+            conference = gca.Conference.from_data(fd.read())
 
     fd = codecs.open(args.file, 'r', encoding='utf-8') if args.file != '-' else sys.stdin
 
     raw_data = fd.read()
     fd.close()
     old_js = json.loads(raw_data)
-    new_objs = [convert_abstract(abs_dict) for abs_dict in old_js]
+    new_objs = [convert_abstract(abs_dict, conference) for abs_dict in old_js]
 
     if args.sort is not None:
         import pandas as pd
