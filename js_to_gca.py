@@ -114,28 +114,8 @@ if __name__ == '__main__':
     new_objs = [convert_abstract(abs_dict, conference) for abs_dict in old_js]
 
     if args.sort is not None:
-        if conference is None:
-            raise ValueError('Need conference for prefixes')
-        import pandas as pd
-        df = pd.read_excel(args.sort)
-        gp = df.groupby(['Abstract number', 'Article_Title'])
-
-        for k, v in gp.groups.iteritems():
-            t = k[1].strip()
-            if t.startswith('"'):
-                t = t[1:]
-            if t.endswith('"'):
-                t = t[:-1]
-            found = None
-            for a in new_objs:
-                if a.title == t.strip():
-                    found = a
-                    break
-            if a is None:
-                print('Could not find' + t, file=sys.stderr)
-                continue
-            sid = k[0]
-            a.poster_id = sid
+        print("use sortid.py for sorting", file=sys.stderr)
+        sys.exit(1)
 
     js = gca.Abstract.to_json(new_objs)
     sys.stdout.write(js.encode('utf-8'))
