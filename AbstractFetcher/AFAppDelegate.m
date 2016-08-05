@@ -35,8 +35,10 @@ typedef enum {
     STATE_DONE = 4
 } AppState;
 
-#define ABSTRACT_ACCEPTED_URL @"http://www.frontiersin.org/events/Neuroinformatics_2015/2602/abstracts"
-#define ABSTRACT_DETAIL_URL @"http://www.frontiersin.org/Journal/MyEditingViewDetails.aspx?stage=8"
+//http://www.frontiersin.org/events/Neuroinformatics_2016/3552/abstracts
+
+#define ABSTRACT_ACCEPTED_URL @"https://www.frontiersin.org/events/Neuroinformatics_2016/3552/abstracts"
+#define ABSTRACT_DETAIL_URL @"https://www.frontiersin.org/Journal/MyEditingViewDetails.aspx?stage=8"
 //#define JS_NEXT_PAGE @"__doPostBack('ctl00$ctl00$MainContentPlaceHolder$ContentAreaMainContent$UcEventsAbstractListing$ucCommunityPagerTop$lnkNextPage','')"
 
 #define JS_NEXT_PAGE @"__doPostBack('ctl00$ctl00$MainContentPlaceHolder$ContentAreaMainContent$UcEventAbstractsListing$ucCommunityPagerTop$lnkNextPage','')"
@@ -99,6 +101,7 @@ typedef enum {
     [self.status setStringValue:@""];
     [self.statusIndex setStringValue:@""];
     [self.location setStringValue:ABSTRACT_ACCEPTED_URL];
+    NSLog(@"%@\n", self.currentURL.absoluteString);
     [[self.webview mainFrame] loadRequest:[NSURLRequest requestWithURL:self.currentURL]];
     self.articleRefs = [[NSMutableArray alloc] init];
 }
@@ -119,7 +122,7 @@ typedef enum {
     DOMNodeList *list = [[self.webview.mainFrame DOMDocument] getElementsByClassName:@"AS55"];
     //DOMNodeList *list = [[self.webview.mainFrame DOMDocument] getElementsByName:@"chkArticleListing"];
     NSMutableArray *newURLs = [NSMutableArray arrayWithCapacity:list.length];
-    NSURL *base = [NSURL URLWithString:@"http://www.frontiersin.org/"];
+    NSURL *base = [NSURL URLWithString:@"https://www.frontiersin.org/"];
     for (int i = 0; i < list.length; i++) {
         
         DOMNode *node = [list item:i];
