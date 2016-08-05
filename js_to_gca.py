@@ -82,6 +82,8 @@ def convert_abstract(old, conference):
     convert_field(old, 'acknowledgements', abstract, 'acknowledgements')
     convert_field(old, 'topic', abstract)
     convert_field(old, 'doi', abstract)
+    if abstract.doi is not None and abstract.doi.startswith("doi: "):
+        abstract.doi = abstract.doi[len("doi: "):]
 
     abstract.authors = [convert_author(a) for a in old['authors']]
     abstract.affiliations = [convert_affiliation(k, v) for k, v in old['affiliations'].iteritems()]
